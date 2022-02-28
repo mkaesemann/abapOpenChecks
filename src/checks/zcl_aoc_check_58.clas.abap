@@ -56,6 +56,7 @@ CLASS zcl_aoc_check_58 DEFINITION
       CHANGING
         !ct_include TYPE gty_include_t .
   PRIVATE SECTION.
+    CONSTANTS: c_comment_needed TYPE scimessage-pcom VALUE 'CI_NEEDED'.
 ENDCLASS.
 
 
@@ -129,6 +130,8 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
           lv_category    TYPE seoclassdf-category,
           lt_ref_include TYPE gty_include_t.
 
+    DATA: ls_statement LIKE LINE OF ref_scan->statements.
+
     FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_methods.
 
 
@@ -166,14 +169,31 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
       ENDIF.
 
       IF lines( lt_ref_include ) = 0 AND object_type = 'CLAS'.
-        IF <ls_method>-alias = abap_false.
-          report_clas(
-            is_method   = <ls_method>
-            iv_err_code = '001' ).
-        ELSE.
-          report_clas(
-            is_method   = <ls_method>
-            iv_err_code = '007' ).
+        "Check if the statement contains a pragma or pseudo-comment
+        CLEAR: ls_statement.
+        READ TABLE ref_scan->tokens TRANSPORTING NO FIELDS
+          WITH KEY str = <ls_method>-cmpname.
+        IF sy-subrc = 0.
+          DATA(line) = sy-tabix.
+          LOOP AT ref_scan->statements INTO ls_statement
+            WHERE from <= line
+              AND to   >  line.
+            EXIT.
+          ENDLOOP.
+        ENDIF.
+        IF NOT has_pseudo_comment(
+             i_comment    = c_comment_needed
+             is_statement = ls_statement ).
+          "Not marked as required: Report
+          IF <ls_method>-alias = abap_false.
+            report_clas(
+              is_method   = <ls_method>
+              iv_err_code = '001' ).
+          ELSE.
+            report_clas(
+              is_method   = <ls_method>
+              iv_err_code = '007' ).
+          ENDIF.
         ENDIF.
       ELSEIF lines( lt_ref_include ) = 0 AND object_type = 'INTF'.
         inform( p_param_1 = <ls_method>-cmpname
@@ -264,8 +284,9 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
     mv_skip_ccau = abap_true.
 
     insert_scimessage(
-      iv_code = '001'
-      iv_text = 'Method not referenced statically'(m01) ).
+        iv_code = '001'
+        iv_text = 'Method &1 not referenced statically'(m01)
+        iv_pcom = c_comment_needed ).
 
     insert_scimessage(
       iv_code = '002'
@@ -464,10 +485,14 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    inform( p_sub_obj_name = lv_include
-            p_kind         = mv_errty
-            p_test         = myname
-            p_code         = iv_err_code ).
+    inform(
+      p_sub_obj_name = lv_include
+      p_line         = VALUE #( ref_scan->tokens[ str = is_method-cmpname ]-row OPTIONAL )
+      p_column       = VALUE #( ref_scan->tokens[ str = is_method-cmpname ]-col OPTIONAL )
+      p_kind         = mv_errty
+      p_test         = myname
+      p_code         = iv_err_code
+      p_param_1      = |{ is_method-clsname }=>{ is_method-cmpname }| ).
 
   ENDMETHOD.
 ENDCLASS.
