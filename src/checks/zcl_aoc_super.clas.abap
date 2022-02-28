@@ -75,6 +75,12 @@ CLASS zcl_aoc_super DEFINITION
         !iv_code TYPE scimessage-code
         !iv_text TYPE ty_scimessage_text
         !iv_pcom TYPE scimessage-pcom OPTIONAL .
+    METHODS has_pseudo_comment
+      IMPORTING
+        !i_comment              TYPE scimessage-pcom
+        !is_statement           TYPE sstmnt
+      RETURNING
+        VALUE(r_comment_exists) TYPE abap_bool.
 
     METHODS inform
         REDEFINITION .
@@ -737,6 +743,41 @@ CLASS ZCL_AOC_SUPER IMPLEMENTATION.
     IF sy-subrc = 0.
       <lv_uses_checksum> = iv_enable.
     ENDIF.
+
+  ENDMETHOD.
+
+
+METHOD has_pseudo_comment.
+
+    r_comment_exists = abap_false.
+
+    LOOP AT ref_scan->statements TRANSPORTING NO FIELDS
+      WHERE table_line = is_statement.
+      DATA(comment_statement_index) = sy-tabix - 1.
+      EXIT.
+    ENDLOOP.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    "Read Previous Statement
+    READ TABLE ref_scan->statements INTO DATA(ls_statement)
+      INDEX comment_statement_index.
+    IF sy-subrc <> 0 OR
+       ( ls_statement-type <> zcl_aoc_scan=>gc_statement-comment and
+         ls_statement-type <> zcl_aoc_scan=>gc_statement-comment_in_stmnt ).
+      "No Preceding Statement or Not a comment statement
+      RETURN.
+    ENDIF.
+
+    "Check Comment Statement
+    LOOP AT ref_scan->tokens INTO DATA(ls_token)
+      FROM ls_statement-from TO ls_statement-to.
+      IF ( ls_token-type = zcl_aoc_scan=>gc_token-comment AND ls_token-str = |"#EC { to_upper( i_comment ) }| ).
+        r_comment_exists = abap_true.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
 ENDCLASS.

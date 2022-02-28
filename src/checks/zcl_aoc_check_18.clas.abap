@@ -10,11 +10,12 @@ CLASS zcl_aoc_check_18 DEFINITION
         REDEFINITION.
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS c_comment_needed TYPE scimessage-pcom VALUE 'CI_NEEDED'.
 ENDCLASS.
 
 
 
-CLASS zcl_aoc_check_18 IMPLEMENTATION.
+CLASS ZCL_AOC_CHECK_18 IMPLEMENTATION.
 
 
   METHOD check.
@@ -56,8 +57,16 @@ CLASS zcl_aoc_check_18 IMPLEMENTATION.
       IF lv_found = abap_false.
         READ TABLE io_scan->statements ASSIGNING <ls_statement> INDEX <ls_structure>-stmnt_from.
         CHECK sy-subrc = 0.
+        DATA(next) = sy-tabix + 1.
         READ TABLE io_scan->tokens ASSIGNING <ls_token> INDEX <ls_statement>-from.
         CHECK sy-subrc = 0.
+
+        "Since we are looking at an empty branch, we need to check the next statement
+        IF has_pseudo_comment(
+             i_comment    = c_comment_needed
+             is_statement = io_scan->statements[ next ] ).
+          CONTINUE.
+        ENDIF.
 
         lv_include = io_scan->get_include( <ls_statement>-level ).
 
@@ -89,7 +98,8 @@ CLASS zcl_aoc_check_18 IMPLEMENTATION.
 
     insert_scimessage(
         iv_code = '001'
-        iv_text = 'Empty branch'(m01) ).
+        iv_text = 'Empty branch'(m01)
+        iv_pcom = c_comment_needed ).
 
   ENDMETHOD.
 ENDCLASS.
