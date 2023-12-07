@@ -20,6 +20,7 @@ CLASS zcl_aoc_check_04 DEFINITION
     DATA mv_maxlength TYPE maxflength.
 
   PRIVATE SECTION.
+    CONSTANTS c_comment_allowed TYPE scimessage-pcom VALUE 'CI_ALLOWED'.
 ENDCLASS.
 
 
@@ -55,6 +56,13 @@ CLASS ZCL_AOC_CHECK_04 IMPLEMENTATION.
             FROM <ls_statement>-from TO <ls_statement>-to.
 
           lv_len = <ls_token>-col + <ls_token>-len1.
+
+          IF has_pseudo_comment(
+               i_comment    = c_comment_allowed
+               is_statement = <ls_statement> ).
+            CONTINUE.
+          ENDIF.
+
           IF lv_len > mv_maxlength.
             inform( p_sub_obj_name = <ls_level>-name
                     p_line         = <ls_token>-row
@@ -87,7 +95,8 @@ CLASS ZCL_AOC_CHECK_04 IMPLEMENTATION.
 
     insert_scimessage(
       iv_code = '001'
-      iv_text = 'Reduce line length'(m01) ).
+      iv_text = 'Reduce line length'(m01)
+      iv_pcom = c_comment_allowed ).
 
   ENDMETHOD.
 

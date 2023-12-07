@@ -17,7 +17,7 @@
     <item>
      <ID>I</ID>
      <KEY>M01</KEY>
-     <ENTRY>Method not referenced statically</ENTRY>
+     <ENTRY>Method &amp;1 not referenced statically (Line &amp;2)</ENTRY>
      <LENGTH>64</LENGTH>
     </item>
     <item>
@@ -53,7 +53,7 @@
     <item>
      <ID>I</ID>
      <KEY>M07</KEY>
-     <ENTRY>Alias not referenced statically</ENTRY>
+     <ENTRY>Alias not referenced statically (Line &amp;2)</ENTRY>
      <LENGTH>62</LENGTH>
     </item>
    </TPOOL>
