@@ -11,6 +11,7 @@ CLASS zcl_aoc_check_16 DEFINITION
         REDEFINITION .
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS c_comment_readability TYPE scimessage-pcom VALUE 'CI_READABILITY'.
 ENDCLASS.
 
 
@@ -57,6 +58,19 @@ CLASS ZCL_AOC_CHECK_16 IMPLEMENTATION.
           CONTINUE.
         ENDIF.
 
+          IF has_pseudo_comment(
+               i_comment    = c_comment_readability
+               is_statement = <ls_statement> ).
+            CONTINUE.
+          ENDIF.
+
+*        if line_exists( io_scan->tokens[ row  = <ls_statement>-trow
+*                                         type = io_scan->gc_token-comment
+*                                         str  = |"#EC { c_comment_readability }| ] ).
+*          "Allow for Readability
+*          CONTINUE.
+*        ENDIF.
+
         lv_include = io_scan->get_include( <ls_statement>-level ).
         inform( p_sub_obj_name = lv_include
                 p_line         = <ls_statement>-trow
@@ -84,7 +98,8 @@ CLASS ZCL_AOC_CHECK_16 IMPLEMENTATION.
 
     insert_scimessage(
         iv_code = '001'
-        iv_text = 'Line contains only "." or ")."'(m01) ).
+        iv_text = 'Line contains only "." or ")."'(m01)
+        iv_pcom = c_comment_readability ).
 
   ENDMETHOD.
 ENDCLASS.

@@ -100,7 +100,7 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
       AND version = '1'
       AND exposure = c_public
       AND attdecltyp = '2'
-      ORDER BY PRIMARY KEY.                               "#EC CI_SUBRC
+      ORDER BY PRIMARY KEY.                                                     "#EC CI_SUBRC
 
     LOOP AT lt_constants ASSIGNING <ls_constant>.
       CONCATENATE <ls_constant>-clsname '\DA:' <ls_constant>-cmpname INTO lv_name.
@@ -153,7 +153,7 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
       AND type = ''
       AND cmpname <> 'CLASS_CONSTRUCTOR'
       AND cmpname <> 'CONSTRUCTOR'
-      ORDER BY clsname cmpname version.                   "#EC CI_SUBRC
+      ORDER BY clsname cmpname version.                                         "#EC CI_SUBRC
 
     LOOP AT lt_methods ASSIGNING <ls_method>.
       CONCATENATE <ls_method>-clsname '\ME:' <ls_method>-cmpname INTO lv_name.
@@ -162,29 +162,33 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
         INTO TABLE lt_ref_include
         WHERE otype = 'ME'
         AND name = lv_name
-        ORDER BY include ASCENDING.                       "#EC CI_SUBRC
+        ORDER BY include ASCENDING.                                             "#EC CI_SUBRC
 
       IF mv_skip_ccau = abap_true.
         DELETE lt_ref_include WHERE table_line+30 = 'CCAU'.
       ENDIF.
 
+      CLEAR: ls_statement.
+      READ TABLE ref_scan->tokens TRANSPORTING NO FIELDS
+        WITH KEY str = <ls_method>-cmpname.
+      IF sy-subrc = 0.
+        DATA(line) = sy-tabix.
+        LOOP AT ref_scan->statements INTO ls_statement
+          WHERE from <= line
+            AND to   >= line.
+          EXIT.
+        ENDLOOP.
+      ENDIF.
+
       IF lines( lt_ref_include ) = 0 AND object_type = 'CLAS'.
         "Check if the statement contains a pragma or pseudo-comment
-        CLEAR: ls_statement.
-        READ TABLE ref_scan->tokens TRANSPORTING NO FIELDS
-          WITH KEY str = <ls_method>-cmpname.
-        IF sy-subrc = 0.
-          DATA(line) = sy-tabix.
-          LOOP AT ref_scan->statements INTO ls_statement
-            WHERE from <= line
-              AND to   >  line.
-            EXIT.
-          ENDLOOP.
-        ENDIF.
-        IF NOT has_pseudo_comment(
+
+        IF ls_statement IS NOT INITIAL AND
+           has_pseudo_comment(
              i_comment    = c_comment_needed
              is_statement = ls_statement ).
-          "Not marked as required: Report
+          "Marked as okay: Do Nothing
+        ELSE.
           IF <ls_method>-alias = abap_false.
             report_clas(
               is_method   = <ls_method>
@@ -208,9 +212,18 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
             ct_include = lt_ref_include ).
 
         IF lines( lt_ref_include ) = 0.
-          report_clas(
-            is_method   = <ls_method>
-            iv_err_code = '003' ).
+
+          IF ls_statement IS NOT INITIAL AND
+             has_pseudo_comment(
+               i_comment    = c_comment_needed
+               is_statement = ls_statement ).
+            "Marked as okay: Do Nothing
+          ELSE.
+            report_clas(
+              is_method   = <ls_method>
+              iv_err_code = '003' ).
+          ENDIF.
+
         ENDIF.
       ELSEIF object_type = 'INTF'.
         filter_implementations(
@@ -248,7 +261,7 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
       AND version = '1'
       AND ( exposure = c_protected OR exposure = c_public OR exposure = c_private )
       AND type = ''
-      ORDER BY clsname cmpname version.                   "#EC CI_SUBRC
+      ORDER BY clsname cmpname version.                                         "#EC CI_SUBRC
 
     LOOP AT lt_types ASSIGNING <ls_type>.
       CONCATENATE <ls_type>-clsname '\TY:' <ls_type>-cmpname INTO lv_name.
@@ -284,9 +297,9 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
     mv_skip_ccau = abap_true.
 
     insert_scimessage(
-        iv_code = '001'
-        iv_text = 'Method &1 not referenced statically'(m01)
-        iv_pcom = c_comment_needed ).
+      iv_code = '001'
+      iv_text = 'Method &1 not referenced statically (Line &2)'(m01)
+      iv_pcom = c_comment_needed ).
 
     insert_scimessage(
       iv_code = '002'
@@ -294,7 +307,8 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
 
     insert_scimessage(
       iv_code = '003'
-      iv_text = 'Method is only referenced locally. Should be changed to private or protected.'(m03) ).
+      iv_text = 'Method &1 is only referenced locally. Should be changed to private or protected.'(m03)
+      iv_pcom = c_comment_needed ).
 
     insert_scimessage(
       iv_code = '004'
@@ -310,7 +324,8 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
 
     insert_scimessage(
       iv_code = '007'
-      iv_text = 'Alias not referenced statically'(m07) ).
+      iv_text = 'Alias not referenced statically (Line &2)'(m07)
+      iv_pcom = c_comment_needed ).
 
   ENDMETHOD.
 
@@ -397,9 +412,9 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
 
     zzaoc_top.
 
-    zzaoc_fill_att mv_errty 'Error Type' ''.                "#EC NOTEXT
-    zzaoc_fill_att mv_skip_ccau 'Skip CCAU' 'C'.            "#EC NOTEXT
-    zzaoc_fill_att mt_methods 'Methods' 'S'.                "#EC NOTEXT
+    zzaoc_fill_att mv_errty 'Error Type' ''.                                    "#EC NOTEXT
+    zzaoc_fill_att mv_skip_ccau 'Skip CCAU' 'C'.                                "#EC NOTEXT
+    zzaoc_fill_att mt_methods 'Methods' 'S'.                                    "#EC NOTEXT
 
     zzaoc_popup.
 
@@ -433,7 +448,7 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
       mv_errty = mv_errty
       mv_skip_ccau = mv_skip_ccau
       mt_methods = mt_methods
-      FROM DATA BUFFER p_attributes.                 "#EC CI_USE_WANTED
+      FROM DATA BUFFER p_attributes.                                            "#EC CI_USE_WANTED
     ASSERT sy-subrc = 0.
 
   ENDMETHOD.
@@ -485,14 +500,30 @@ CLASS zcl_aoc_check_58 IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    DATA(src_line)   = VALUE #( ref_scan->tokens[ str = is_method-cmpname ]-row OPTIONAL ).
+    DATA(src_column) = VALUE #( ref_scan->tokens[ str = is_method-cmpname ]-col OPTIONAL ).
+
+    DATA(unit_line)   = VALUE token_row( ).
+    DATA(unit_column) = VALUE token_col( ).
+    IF iv_err_code = '001' OR
+       iv_err_code = '003' OR
+       iv_err_code = '007'.
+      unit_line   = 1.
+      unit_column = 1.
+    ELSE.
+      unit_line = src_line.
+      unit_column = src_column.
+    ENDIF.
+
     inform(
       p_sub_obj_name = lv_include
-      p_line         = VALUE #( ref_scan->tokens[ str = is_method-cmpname ]-row OPTIONAL )
-      p_column       = VALUE #( ref_scan->tokens[ str = is_method-cmpname ]-col OPTIONAL )
+      p_line         = unit_line
+      p_column       = unit_column
       p_kind         = mv_errty
       p_test         = myname
       p_code         = iv_err_code
-      p_param_1      = |{ is_method-clsname }=>{ is_method-cmpname }| ).
+      p_param_1      = |{ is_method-clsname }=>{ is_method-cmpname }|
+      p_param_2      = |{ src_line }| ).
 
   ENDMETHOD.
 ENDCLASS.

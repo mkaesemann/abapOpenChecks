@@ -17,6 +17,7 @@ CLASS zcl_aoc_check_76 DEFINITION
         REDEFINITION .
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS c_comment_strict_text TYPE scimessage-pcom VALUE 'CI_STRICT_TEXT'.
 
     METHODS get_tokens_for_statement
       IMPORTING
@@ -65,6 +66,12 @@ CLASS ZCL_AOC_CHECK_76 IMPLEMENTATION.
 
       READ TABLE io_scan->tokens ASSIGNING <ls_token> INDEX <ls_statement>-from.
       IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
+      IF has_pseudo_comment(
+           i_comment    = c_comment_strict_text
+           is_statement = <ls_statement> ).
         CONTINUE.
       ENDIF.
 
@@ -162,7 +169,8 @@ CLASS ZCL_AOC_CHECK_76 IMPLEMENTATION.
 
     insert_scimessage(
         iv_code = '001'
-        iv_text = 'INNER JOIN on text table'(m01) ).
+        iv_text = 'INNER JOIN on text table'(m01)
+        iv_pcom = c_comment_strict_text ).
 
   ENDMETHOD.
 
