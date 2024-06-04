@@ -98,7 +98,7 @@ PARAMETERS:
 SELECTION-SCREEN END OF BLOCK ood.
 SELECTION-SCREEN BEGIN OF BLOCK methods WITH FRAME TITLE TEXT-met.
 PARAMETERS:
-  p_ooimpo TYPE text40 MODIF ID ro,
+  p_ooimpo TYPE c length 250 VISIBLE LENGTH 40 MODIF ID ro,
   p_ooexpo TYPE text40 MODIF ID ro,
   p_oochan TYPE text40 MODIF ID ro,
   p_ooretu TYPE text40 MODIF ID ro.

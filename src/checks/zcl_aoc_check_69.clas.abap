@@ -118,7 +118,7 @@ ENDCLASS.
 
 
 
-CLASS zcl_aoc_check_69 IMPLEMENTATION.
+CLASS ZCL_AOC_CHECK_69 IMPLEMENTATION.
 
 
   METHOD analyze_statements.
@@ -851,7 +851,7 @@ CLASS zcl_aoc_check_69 IMPLEMENTATION.
 
     lv_regex = |^{ iv_regex }|.
 
-    FIND REGEX lv_regex IN iv_name IGNORING CASE.
+    FIND PCRE lv_regex IN iv_name IGNORING CASE.
     IF sy-subrc <> 0.
       lv_include = mo_scan->get_include( statement_wa-level ).
       inform( p_sub_obj_name = lv_include
